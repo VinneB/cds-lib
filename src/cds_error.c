@@ -1,6 +1,6 @@
 #include "cds_error.h"
 
-const char *cds_error_to_string(cds_err_t err) {
+const char *cds_error_to_string(cds_err err) {
   switch (err) {
   case CDS_SUCCESS:
     return "Success";

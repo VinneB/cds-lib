@@ -13,13 +13,13 @@ typedef enum {
   CDS_ERROR_INDEX_OOB,
   CDS_ERROR_INTERNAL,
   CDS_ERROR_ELEMENT_NOT_FOUND
-} cds_err_t;
+} cds_err;
 
 /**
  * @brief Convert cds error value to string literal
  * @param err Cds error value
  * @return String literal describing error.
  */
-const char* cds_error_to_string (cds_err_t err);
+const char* cds_error_to_string (cds_err err);
 
 #endif // !CDS_ERROR_H
