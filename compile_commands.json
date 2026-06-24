@@ -1,0 +1,21 @@
+[
+  {
+    "file": "tests/src/test_cds_arraylist.c",
+    "arguments": [
+      "/usr/sbin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-MMD",
+      "-Iinclude",
+      "-Itests/include",
+      "-Itests/libs/ecassert/include",
+      "-c",
+      "tests/src/test_cds_arraylist.c",
+      "-o",
+      "tests/obj/test_cds_arraylist.o"
+    ],
+    "directory": "/home/vinne/scripts/cds-lib",
+    "output": "tests/obj/test_cds_arraylist.o"
+  }
+]

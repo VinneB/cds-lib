@@ -1,0 +1,7 @@
+add(E e) / add(int index, E element): Adds elements.
+get(int index): Retrieves element.
+remove(int index) / remove(Object o): Removes element.
+set(int index, E element): Replaces element.
+size(): Returns number of elements.
+ensureCapacity(int minCapacity): Increases capacity to handle large additions efficiently.
+trimToSize(): Reduces capacity to match current size.
