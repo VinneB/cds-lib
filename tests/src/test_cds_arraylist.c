@@ -41,13 +41,12 @@ eca_status cds_test_arraylist_3() {
     cds_arraylist_add_to_end(&arr, &i);
   }
   for (i = 10; i < 20; i++) {
-    cds_arraylist_add(&arr, &i, i-5);
+    cds_arraylist_add(&arr, &i, i - 5);
   }
   int expected_arr[18] = {0, 1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 5, 6, 7};
   ECA_ASSERT_ARR_INT(expected_arr, 18, arr.data, 18);
   return ECA_PASS;
 }
-
 
 eca_status cds_test_arraylist_4() {
   arraylist_t arr;
@@ -59,5 +58,37 @@ eca_status cds_test_arraylist_4() {
   ECA_ASSERT_INT(CDS_ERROR_INDEX_OOB, err);
   err = cds_arraylist_add(&arr, &val, 0);
   ECA_ASSERT_INT(CDS_SUCCESS, err);
+  return ECA_PASS;
+}
+
+eca_status cds_test_arraylist_5() {
+  arraylist_t arr;
+  cds_arraylist_init(&arr, 5, sizeof(int));
+  int i = 0;
+  for (i = 0; i < 8; i++) {
+    cds_arraylist_add_to_end(&arr, &i);
+  }
+  unsigned int get_val;
+  cds_arraylist_get(&arr, 0, &get_val);
+  ECA_ASSERT_INT(0, get_val)
+  cds_arraylist_get(&arr, 7, &get_val);
+  ECA_ASSERT_INT(7, get_val)
+  return ECA_PASS;
+}
+
+eca_status cds_test_arraylist_6() {
+  struct shape {
+    const char *name;
+    unsigned int vertex_count;
+  };
+  arraylist_t arr;
+  const char *name[4] = {"po", "li", "tr", "sq"};
+  cds_arraylist_init(&arr, 2, sizeof(int));
+  for (int i = 1; i < 5; i++) {
+    struct shape curr_shape = {name[i - 1], i};
+    cds_arraylist_add_to_end(&arr, &curr_shape);
+  }
+  ECA_ASSERT_INT(4, arr.capacity);
+  ECA_ASSERT_POINTER("po", (void *)name[0], 2);
   return ECA_PASS;
 }

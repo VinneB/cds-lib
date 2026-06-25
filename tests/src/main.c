@@ -17,6 +17,8 @@ int main() {
   eca_register_test("arraylist", "set value test", cds_test_arraylist_2);
   eca_register_test("arraylist", "add to middle test", cds_test_arraylist_3);
   eca_register_test("arraylist", "OOB error test", cds_test_arraylist_4);
+  eca_register_test("arraylist", "get test", cds_test_arraylist_5);
+  eca_register_test("arraylist", "struct test", cds_test_arraylist_6);
   eca_run_tests();
   eca_cleanup();
   return 0;
