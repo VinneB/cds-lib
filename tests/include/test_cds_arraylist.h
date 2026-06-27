@@ -15,4 +15,8 @@ eca_status cds_test_arraylist_5();
 
 eca_status cds_test_arraylist_6();
 
+eca_status cds_test_arraylist_7();
+
+eca_status cds_test_arraylist_8();
+
 #endif // TEST_CDS_ARRAYLIST_H

@@ -19,6 +19,8 @@ int main() {
   eca_register_test("arraylist", "OOB error test", cds_test_arraylist_4);
   eca_register_test("arraylist", "get test", cds_test_arraylist_5);
   eca_register_test("arraylist", "struct test", cds_test_arraylist_6);
+  eca_register_test("arraylist", "remove test", cds_test_arraylist_7);
+  eca_register_test("arraylist", "remove element test", cds_test_arraylist_8);
   eca_run_tests();
   eca_cleanup();
   return 0;
