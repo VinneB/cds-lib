@@ -1,0 +1,1 @@
+The lib does not allocate data for the data structure itself. The user always provided a block of memory, either heap or stack (the lib doesnt care) which is used to store the data structure. Any internals necessary for the functioning of the data structure is malloced by the lib.

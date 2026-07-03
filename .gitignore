@@ -1,0 +1,7 @@
+.clang-format
+.compile_commands.json
+lib/*
+obj/*
+tests/lib/
+tests/obj/
+tests/bin

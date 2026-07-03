@@ -2,6 +2,7 @@
 #define ARRAYLIST_H
 
 #include <stddef.h>
+#include "cds_error.h"
 
 #define DEFAULT_ARRAYLIST_CAPACITY 64
 
@@ -23,14 +24,14 @@ typedef struct {
  * @param element_size Number of bytes in an individual element 
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_init(cds_arraylist *ds, unsigned int initial_capacity, size_t element_size);
+cds_err cds_arraylist_init(cds_arraylist *ds, unsigned int initial_capacity, size_t element_size);
 
 /**
  * @brief Free the arraylist internal memory and clear struct. DOES NOT FREE STRUCT ITSELF.
  * @param ds pointer to intialized cds_arraylist struct
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_free(cds_arraylist *ds);
+cds_err cds_arraylist_free(cds_arraylist *ds);
 
 /** 
  * @brief Add element to arraylist at index. Amortized O(N)
@@ -40,7 +41,7 @@ unsigned int cds_arraylist_free(cds_arraylist *ds);
  * @param index Index in arraylist to put element. 0 <= index <= size.
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_add(cds_arraylist *ds, void *element, unsigned int index);
+cds_err cds_arraylist_add(cds_arraylist *ds, void *element, unsigned int index);
 
 /**
  * @brief Add element to end of arraylist. Amortized O(1)
@@ -48,7 +49,7 @@ unsigned int cds_arraylist_add(cds_arraylist *ds, void *element, unsigned int in
  * @param element Element to add to arraylist. 
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_add_to_end(cds_arraylist *ds, void *element);
+cds_err cds_arraylist_add_to_end(cds_arraylist *ds, void *element);
 
 /**
  * @brief Get element at index. O(1)
@@ -57,7 +58,7 @@ unsigned int cds_arraylist_add_to_end(cds_arraylist *ds, void *element);
  * @param value The value found at index
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_get(cds_arraylist *ds, unsigned int index, void *value);
+cds_err cds_arraylist_get(cds_arraylist *ds, unsigned int index, void *value);
 
 /*
  * @brief Remove element from arraylist at given index and return it. O(N). DOES NOT FREE ELEMENT.
@@ -66,7 +67,7 @@ unsigned int cds_arraylist_get(cds_arraylist *ds, unsigned int index, void *valu
  * @param removed_element Element which was removed from list (not freed).
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_remove(cds_arraylist *ds, unsigned int index, void *removed_element);
+cds_err cds_arraylist_remove(cds_arraylist *ds, unsigned int index, void *removed_element);
 
 /*
  * @brief Removes the first instance of provided element from array. O(N). DOES NOT FREE ELEMENT.
@@ -75,7 +76,7 @@ unsigned int cds_arraylist_remove(cds_arraylist *ds, unsigned int index, void *r
  * @param removed_index Index of removed element
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_remove_element(cds_arraylist *ds, void *element, unsigned int *removed_index);
+cds_err cds_arraylist_remove_element(cds_arraylist *ds, void *element, unsigned int *removed_index);
 
 /*
  * @brief Put the provided element in array at provided index and return the element that was previously at that index. O(1). DOES NOT FREE ELEMENT.
@@ -85,14 +86,14 @@ unsigned int cds_arraylist_remove_element(cds_arraylist *ds, void *element, unsi
  * @param removed_element Element which was previously at index (not freed).
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_set(cds_arraylist *ds, void *element, unsigned int index, void *removed_element);
+cds_err cds_arraylist_set(cds_arraylist *ds, void *element, unsigned int index, void *removed_element);
 
 /*
  * @brief Return the size of the arraylist.
  * @param ds pointer to intialized cds_arraylist struct
  * @return Returns the size of the arraylist
  */
-unsigned int cds_arraylist_size(cds_arraylist *ds); 
+cds_err cds_arraylist_size(cds_arraylist *ds); 
 
 /*
  * @brief Grow internal array to provided size.  
@@ -101,13 +102,13 @@ unsigned int cds_arraylist_size(cds_arraylist *ds);
  * @param ds pointer to intialized cds_arraylist struct
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_ensure_capacity(cds_arraylist *ds, unsigned int new_capacity);
+cds_err cds_arraylist_ensure_capacity(cds_arraylist *ds, unsigned int new_capacity);
 
 /*
  * @brief Reduce capacity down to size.
  * @param new_capacity The new size of internal array.
  * @return Returns error value on error. Returns CDS_SUCCESS (0) on success.
  */
-unsigned int cds_arraylist_trim_to_size(cds_arraylist *ds);
+cds_err cds_arraylist_trim_to_size(cds_arraylist *ds);
 
 #endif
