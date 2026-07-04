@@ -5,7 +5,7 @@
 #include "cds_error.h"
 
 #define CDS_LINKEDLIST_BYTE_SZ 48 
-#define CDS_LINKEDLIST_ITERATOR_BYTE_SZ 16
+#define CDS_LINKEDLIST_ITERATOR_BYTE_SZ 24
 
 typedef struct {
   alignas(max_align_t) char internal[CDS_LINKEDLIST_BYTE_SZ];
@@ -71,17 +71,17 @@ cds_err cds_linkedlist_size(cds_linkedlist *ds, unsigned int *return_size);
 
 cds_err cds_linkedlist_iterator_next(cds_linkedlist_iterator *ds);
 
-cds_err cds_linkedlist_iterator_get_curr(cds_linkedlist_iterator *ds, void *return_element);
+cds_err cds_linkedlist_iterator_get_curr(cds_linkedlist_iterator *ds, void **element);
 
-cds_err cds_linkedlist_iterator_set_curr(cds_linkedlist_iterator *ds, void *return_element);
+cds_err cds_linkedlist_iterator_set_curr(cds_linkedlist_iterator *ds, void *element);
 
-cds_err cds_linkedlist_iterator_read_curr(cds_linkedlist_iterator *ds, void *return_element);
+cds_err cds_linkedlist_iterator_read_curr(cds_linkedlist_iterator *ds, const void **element);
 
-cds_err cds_linkedlist_iterator_cpy_curr(cds_linkedlist_iterator *ds, void *return_element);
+cds_err cds_linkedlist_iterator_cpy_curr(cds_linkedlist_iterator *ds, void *element);
 
-cds_err cds_linkedlist_iterator_extract_curr(cds_linkedlist_iterator *ds, void *return_element);
+cds_err cds_linkedlist_iterator_extract_curr(cds_linkedlist_iterator *ds, void *element);
 
-cds_err cds_linkedlist_iterator_delete_curr(cds_linkedlist_iterator *ds, void *return_element);
+cds_err cds_linkedlist_iterator_delete_curr(cds_linkedlist_iterator *ds);
 
 cds_err cds_linkedlist_iterator_insert_after(cds_linkedlist_iterator *ds, void *data);
 
