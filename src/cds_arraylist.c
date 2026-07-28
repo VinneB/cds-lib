@@ -129,7 +129,7 @@ cds_err cds_arraylist_size(cds_arraylist *ds) { return ds->size; }
 cds_err cds_arraylist_add(cds_arraylist *ds, void *element, unsigned int index) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
-  RETURN_IF_INDEX_OOB(ds, index);
+  RETURN_IF_INDEX_OOB_INCLUDE_END(ds, index);
   dyn_resize(ds, 1);
   shift_data_right(ds, index);
   set(ds, index, element);

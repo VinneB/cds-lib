@@ -27,7 +27,7 @@
 #endif
 
 #if CDS_USE_DS_VALIDATION
-#define RETURN_IF_INDEX_OOB(ds, index) \
+#define RETURN_IF_INDEX_OOB_INCLUDE_END(ds, index) \
   do {                                 \
     if (index > ds->size) {            \
       return CDS_ERROR_INDEX_OOB;      \
@@ -37,10 +37,32 @@
 #define RETURN_IF_INDEX_OOB(ds, index)
 #endif
 
+#if CDS_USE_DS_VALIDATION
+#define RETURN_IF_INDEX_OOB(ds, index) \
+  do {                                 \
+    if (index >= ds->size) {            \
+      return CDS_ERROR_INDEX_OOB;      \
+    }                                  \
+  } while (0)
+#else
+#define RETURN_IF_INDEX_OOB(ds, index)
+#endif
+
+#if CDS_USE_DS_VALIDATION
+#define RETURN_IF_END_LINK_ITERATOR(iter) \
+  do {                                 \
+    if (*(iter->link) == NULL) {            \
+      return CDS_ERROR_ITER_END;      \
+    }                                  \
+  } while (0)
+#else
+#define RETURN_IF_INDEX_OOB(ds, index)
+#endif
+
 // Alignment
 
 static inline size_t align_up(size_t size, size_t alignment) {
-  return (size + alignment - 1) & ~(a - 1);
+  return (size + alignment - 1) & ~(alignment - 1);
 }
 
 #endif // !CDS_INTERNAL_COMMON_H

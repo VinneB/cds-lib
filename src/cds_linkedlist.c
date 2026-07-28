@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -9,6 +10,7 @@
 
 typedef struct node_md node_md;
 
+// next needs to be the first element in node_md to ensure the iterator casting link to node logic works
 struct node_md {
   node_md *next;
 };
@@ -28,8 +30,7 @@ _Static_assert(_Alignof(linkedlist) <= _Alignof(cds_linkedlist), "linkedlist ali
 
 typedef struct {
   linkedlist *ll;
-  node_md *curr;
-  unsigned char is_on_curr;
+  node_md **link;
 } linkedlist_iterator;
 
 _Static_assert(sizeof(linkedlist_iterator) <= sizeof(cds_linkedlist_iterator), "cds_linkedlist_iterator must be large enough to contain linkedlist_iterator");
@@ -83,7 +84,6 @@ static inline node_md *node_get_at_index(linkedlist *ll, unsigned int index) {
 cds_err cds_linkedlist_init(cds_linkedlist *ds, size_t elem_size, size_t elem_align) {
   linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
-  RETURN_IF_DS_NOT_INIT(ll);
   ll->elem_size = elem_size;
   ll->elem_align = (alignof(node_md) > elem_align) ? alignof(node_md) : elem_align;
   ll->data_offset = align_up(sizeof(node_md), ll->elem_align);
@@ -104,6 +104,7 @@ cds_err cds_linkedlist_free(cds_linkedlist *ds) {
     curr = next;
   }
   free(ll->tail);
+  memset(ll, 0, sizeof(linkedlist));
   return CDS_SUCCESS;
 }
 
@@ -113,9 +114,8 @@ cds_err cds_linkedlist_get_iterator(cds_linkedlist *ds, cds_linkedlist_iterator 
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
   RETURN_IF_DS_NULL(llit);
-  llit->curr = ll->head;
+  llit->link = &ll->head;
   llit->ll = ll;
-  llit->is_on_curr = 1;
   return CDS_SUCCESS;
 }
 
@@ -123,14 +123,21 @@ cds_err cds_linkedlist_insert_tail(cds_linkedlist *ds, void *element) {
   linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
+  // alloc & set node
   node_md *node;
   cds_err ret = alloc_node(ll, &node);
   if (ret != CDS_SUCCESS) {
     return ret;
   }
   node_set_data(ll, node, element);
-  ll->tail->next = node;
-  ll->tail = node;
+  // update tail and update head if applicable
+  if (ll->head == NULL) {
+    ll->head = node;
+    ll->tail = node;
+  } else {
+    ll->tail->next = node;
+    ll->tail = node;
+  }
   ll->size++;
   return CDS_SUCCESS;
 }
@@ -139,23 +146,31 @@ cds_err cds_linkedlist_insert_head(cds_linkedlist *ds, void *element) {
   linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
+  // alloc & set node
   node_md *node;
   cds_err ret = alloc_node(ll, &node);
   if (ret != CDS_SUCCESS) {
     return ret;
   }
   node_set_data(ll, node, element);
+  // update head
   node->next = ll->head;
   ll->head = node;
+  // update tail if applicable
+  if (ll->tail == NULL) {
+    ll->tail = node;
+  }
   ll->size++;
   return CDS_SUCCESS;
 }
 
 cds_err cds_linkedlist_insert_index(cds_linkedlist *ds, unsigned int index, void *element) {
+  linkedlist *ll = (linkedlist *)ds;
   if (index == 0) {
     return cds_linkedlist_insert_head(ds, element);
+  } else if (index == ll->size) {
+    return cds_linkedlist_insert_tail(ds, element);
   }
-  linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
   RETURN_IF_INDEX_OOB(ll, index);
@@ -199,15 +214,15 @@ cds_err cds_linkedlist_get_index(cds_linkedlist *ds, unsigned int index, void **
 }
 
 cds_err cds_linkedlist_read_head(cds_linkedlist *ds, const void **element) {
-  return cds_linkedlist_get_head(ds, element);
+  return cds_linkedlist_get_head(ds, (void **)element);
 }
 
 cds_err cds_linkedlist_read_tail(cds_linkedlist *ds, const void **element) {
-  return cds_linkedlist_get_tail(ds, element);
+  return cds_linkedlist_get_tail(ds, (void **)element);
 }
 
 cds_err cds_linkedlist_read_index(cds_linkedlist *ds, unsigned int index, const void **element) {
-  return cds_linkedlist_get_index(ds, index, element);
+  return cds_linkedlist_get_index(ds, index, (void **)element);
 }
 
 cds_err cds_linkedlist_set_head(cds_linkedlist *ds, const void *element) {
@@ -267,8 +282,13 @@ cds_err cds_linkedlist_delete_head(cds_linkedlist *ds) {
   linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
+  // unlink head
   node_md *del_node = ll->head;
   ll->head = ll->head->next;
+  // update tail if applicable
+  if (del_node == ll->tail) {
+    ll->tail = NULL;
+  }
   free(del_node);
   ll->size--;
   return CDS_SUCCESS;
@@ -278,33 +298,38 @@ cds_err cds_linkedlist_delete_tail(cds_linkedlist *ds) {
   linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
-  node_md *node = ll->head;
-  while (node->next->next != NULL) {
-    node = node->next;
+  if (ll->head == ll->tail) {
+    free(ll->head);
+    ll->head = ll->tail = NULL;
+    ll->size--;
+    return CDS_SUCCESS;
   }
-  ll->tail = node->next;
-  free(node->next);
-  node->next = NULL;
+  // get node before tail
+  node_md **link = &ll->head;
+  while ((*link)->next != NULL) {
+    link = &(*link)->next;
+  }
+  ll->tail = (node_md *)link;
+  free(*link);
+  *link = NULL;
   ll->size--;
   return CDS_SUCCESS;
 }
 
 cds_err cds_linkedlist_delete_index(cds_linkedlist *ds, unsigned int index) {
+  linkedlist *ll = (linkedlist *)ds;
   if (index == 0) {
     return cds_linkedlist_delete_head(ds);
+  } else if (index == ll->size - 1) {
+    return cds_linkedlist_delete_tail(ds);
   }
-  linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
   RETURN_IF_INDEX_OOB(ll, index);
-  node_md *node = ll->head;
-  unsigned int idx = 0;
-  while (idx++ != index - 1) {
-    node = node->next;
-  }
-  node_md *next_node = node->next->next;
-  free(node->next);
-  node->next = next_node;
+  node_md *node = node_get_at_index(ll, index - 1);
+  node_md *rem_node = node->next;
+  node->next = rem_node->next;
+  free(rem_node);
   ll->size--;
   return CDS_SUCCESS;
 }
@@ -313,10 +338,16 @@ cds_err cds_linkedlist_extract_head(cds_linkedlist *ds, void *element) {
   linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
+  // extract value
   memcpy(element, node_data(ll, ll->head), ll->elem_size);
-  node_md *node = ll->head;
+  // unlink head
+  node_md *del_node = ll->head;
   ll->head = ll->head->next;
-  free(node);
+  // update tail if applicable
+  if (del_node == ll->tail) {
+    ll->tail = NULL;
+  }
+  free(del_node);
   ll->size--;
   return CDS_SUCCESS;
 }
@@ -325,35 +356,43 @@ cds_err cds_linkedlist_extract_tail(cds_linkedlist *ds, void *element) {
   linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
-  node_md *node = ll->head;
-  while (node->next->next != NULL) {
-    node = node->next;
+  // extract value
+  memcpy(element, node_data(ll, ll->tail), ll->elem_size);
+  // if only one elem
+  if (ll->head == ll->tail) {
+    free(ll->head);
+    ll->head = ll->tail = NULL;
+    ll->size--;
+    return CDS_SUCCESS;
   }
-  ll->tail = node->next;
-  memcpy(element, node_data(ll, node->next), ll->elem_size);
-  free(node->next);
-  node->next = NULL;
+  // get node before tail
+  node_md **link = &ll->head;
+  while ((*link)->next != NULL) {
+    link = &(*link)->next;
+  }
+  // unlink tail
+  ll->tail = (node_md *)link;
+  free(*link);
+  *link = NULL;
   ll->size--;
   return CDS_SUCCESS;
 }
 
 cds_err cds_linkedlist_extract_index(cds_linkedlist *ds, unsigned int index, void *element) {
+  linkedlist *ll = (linkedlist *)ds;
   if (index == 0) {
     return cds_linkedlist_extract_head(ds, element);
+  } else if (index == ll->size - 1) {
+    return cds_linkedlist_extract_tail(ds, element);
   }
-  linkedlist *ll = (linkedlist *)ds;
   RETURN_IF_DS_NULL(ll);
   RETURN_IF_DS_NOT_INIT(ll);
   RETURN_IF_INDEX_OOB(ll, index);
-  node_md *node = ll->head;
-  unsigned int idx = 0;
-  while (idx++ != index - 1) {
-    node = node->next;
-  }
-  node_md *next_node = node->next->next;
-  memcpy(element, node->next, ll->elem_size);
-  free(node->next);
-  node->next = next_node;
+  node_md *node = node_get_at_index(ll, index - 1);
+  node_md *rem_node = node->next;
+  memcpy(element, node_data(ll, rem_node), ll->elem_size);
+  node->next = rem_node->next;
+  free(rem_node);
   ll->size--;
   return CDS_SUCCESS;
 }
@@ -371,13 +410,8 @@ cds_err cds_linkedlist_iterator_next(cds_linkedlist_iterator *ds) {
   RETURN_IF_DS_NULL(lli);
   RETURN_IF_DS_NULL(lli->ll);
   RETURN_IF_DS_NOT_INIT(lli->ll);
-  if (lli->is_on_curr) {
-    lli->is_on_curr = 0;
-  } else if (lli->curr->next == NULL || lli->curr->next->next == NULL) {
-    return CDS_ERROR_END_OF_LIST;
-  } else {
-    lli->curr = lli->curr->next;
-  }
+  RETURN_IF_END_LINK_ITERATOR(lli);
+  lli->link = &((*lli->link)->next);
   return CDS_SUCCESS;
 }
 
@@ -386,8 +420,8 @@ cds_err cds_linkedlist_iterator_get_curr(cds_linkedlist_iterator *ds, void **ele
   RETURN_IF_DS_NULL(lli);
   RETURN_IF_DS_NULL(lli->ll);
   RETURN_IF_DS_NOT_INIT(lli->ll);
-  node_md *node = (lli->is_on_curr) ? lli->curr : lli->curr->next;
-  *element = node_data(lli->ll, node);
+  RETURN_IF_END_LINK_ITERATOR(lli);
+  *element = node_data(lli->ll, *lli->link);
   return CDS_SUCCESS;
 }
 
@@ -396,13 +430,13 @@ cds_err cds_linkedlist_iterator_set_curr(cds_linkedlist_iterator *ds, void *elem
   RETURN_IF_DS_NULL(lli);
   RETURN_IF_DS_NULL(lli->ll);
   RETURN_IF_DS_NOT_INIT(lli->ll);
-  node_md *node = (lli->is_on_curr == 0) ? lli->curr->next : lli->curr;
-  memcpy(node_data(lli->ll, node), element, lli->ll->elem_size);
+  RETURN_IF_END_LINK_ITERATOR(lli);
+  memcpy(node_data(lli->ll, *lli->link), element, lli->ll->elem_size);
   return CDS_SUCCESS;
 }
 
 cds_err cds_linkedlist_iterator_read_curr(cds_linkedlist_iterator *ds, const void **element) {
-  return cds_linkedlist_iterator_get_curr(ds, element);
+  return cds_linkedlist_iterator_get_curr(ds, (void **)element);
 }
 
 cds_err cds_linkedlist_iterator_cpy_curr(cds_linkedlist_iterator *ds, void *element) {
@@ -410,8 +444,8 @@ cds_err cds_linkedlist_iterator_cpy_curr(cds_linkedlist_iterator *ds, void *elem
   RETURN_IF_DS_NULL(lli);
   RETURN_IF_DS_NULL(lli->ll);
   RETURN_IF_DS_NOT_INIT(lli->ll);
-  node_md *node = (lli->is_on_curr) ? lli->curr : lli->curr->next;
-  memcpy(element, node_data(lli->ll, node), lli->ll->elem_size);
+  RETURN_IF_END_LINK_ITERATOR(lli);
+  memcpy(element, node_data(lli->ll, *lli->link), lli->ll->elem_size);
   return CDS_SUCCESS;
 }
 
@@ -420,6 +454,20 @@ cds_err cds_linkedlist_iterator_extract_curr(cds_linkedlist_iterator *ds, void *
   RETURN_IF_DS_NULL(lli);
   RETURN_IF_DS_NULL(lli->ll);
   RETURN_IF_DS_NOT_INIT(lli->ll);
+  RETURN_IF_END_LINK_ITERATOR(lli);
+  node_md *node = *lli->link;
+  memcpy(element, node_data(lli->ll, node), lli->ll->elem_size);
+  *lli->link = node->next;
+  if (node == lli->ll->tail) {
+    if (lli->link == &lli->ll->head) {
+      lli->ll->tail = NULL;
+    } else {
+      lli->ll->tail = (node_md *)lli->link;
+    }
+  }
+  free(node);
+  lli->ll->size--;
+  return CDS_SUCCESS;
 }
 
 cds_err cds_linkedlist_iterator_delete_curr(cds_linkedlist_iterator *ds) {
@@ -427,9 +475,45 @@ cds_err cds_linkedlist_iterator_delete_curr(cds_linkedlist_iterator *ds) {
   RETURN_IF_DS_NULL(lli);
   RETURN_IF_DS_NULL(lli->ll);
   RETURN_IF_DS_NOT_INIT(lli->ll);
-  if () {
-    return
+  RETURN_IF_END_LINK_ITERATOR(lli);
+  node_md *node = *lli->link;
+  *lli->link = node->next;
+  if (node == lli->ll->tail) {
+    if (lli->link == &lli->ll->head) {
+      lli->ll->tail = NULL;
+    } else {
+      lli->ll->tail = (node_md *)lli->link;
+    }
   }
+  free(node);
+  lli->ll->size--;
+  return CDS_SUCCESS;
 }
 
-cds_err cds_linkedlist_iterator_insert_after(cds_linkedlist_iterator *ds, void *data);
+cds_err cds_linkedlist_iterator_insert(cds_linkedlist_iterator *ds, void *element) {
+  linkedlist_iterator *lli = (linkedlist_iterator *)ds;
+  RETURN_IF_DS_NULL(lli);
+  RETURN_IF_DS_NULL(lli->ll);
+  RETURN_IF_DS_NOT_INIT(lli->ll);
+  node_md *node;
+  cds_err ret = alloc_node(lli->ll, &node);
+  if (ret != CDS_SUCCESS) {
+    return ret;
+  }
+  node_set_data(lli->ll, node, element);
+  if ((node_md *)lli->link == lli->ll->tail) {
+    lli->ll->tail = node;
+  }
+  node->next = *lli->link;
+  *lli->link = node;
+  lli->ll->size++;
+  return CDS_SUCCESS;
+}
+
+cds_err cds_linkedlist_iterator_is_at_end(cds_linkedlist_iterator *ds) {
+  linkedlist_iterator *lli = (linkedlist_iterator *)ds;
+  RETURN_IF_DS_NULL(lli);
+  RETURN_IF_DS_NULL(lli->ll);
+  RETURN_IF_DS_NOT_INIT(lli->ll);
+  return (*lli->link == NULL) ? CDS_ERROR_ITER_END : CDS_SUCCESS;
+}

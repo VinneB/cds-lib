@@ -5,7 +5,7 @@
 #include "cds_error.h"
 
 #define CDS_LINKEDLIST_BYTE_SZ 48 
-#define CDS_LINKEDLIST_ITERATOR_BYTE_SZ 24
+#define CDS_LINKEDLIST_ITERATOR_BYTE_SZ 16
 
 typedef struct {
   alignas(max_align_t) char internal[CDS_LINKEDLIST_BYTE_SZ];
@@ -83,7 +83,9 @@ cds_err cds_linkedlist_iterator_extract_curr(cds_linkedlist_iterator *ds, void *
 
 cds_err cds_linkedlist_iterator_delete_curr(cds_linkedlist_iterator *ds);
 
-cds_err cds_linkedlist_iterator_insert_after(cds_linkedlist_iterator *ds, void *data);
+cds_err cds_linkedlist_iterator_insert(cds_linkedlist_iterator *ds, void *element);
+
+cds_err cds_linkedlist_iterator_is_at_end(cds_linkedlist_iterator *ds);
 
 
 #endif // !CDS_LINKED_H

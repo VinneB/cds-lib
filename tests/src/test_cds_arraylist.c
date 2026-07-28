@@ -57,7 +57,7 @@ eca_status cds_test_arraylist_3() {
 
 eca_status cds_test_arraylist_4() {
   cds_arraylist arr;
-  cds_arraylist_init(&arr, 1, sizeof(int));
+  ECA_ASSERT_INT(CDS_SUCCESS, cds_arraylist_init(&arr, 1, sizeof(int)));
   int val = 5;
   int err = cds_arraylist_add(&arr, &val, 1);
   ECA_ASSERT_INT(CDS_ERROR_INDEX_OOB, err);
@@ -73,12 +73,16 @@ eca_status cds_test_arraylist_5() {
   cds_arraylist_init(&arr, 5, sizeof(int));
   int i = 0;
   for (i = 0; i < 8; i++) {
-    cds_arraylist_add_to_end(&arr, &i);
+    ECA_ASSERT_INT(CDS_SUCCESS, cds_arraylist_add_to_end(&arr, &i));
   }
   unsigned int get_val;
-  cds_arraylist_get(&arr, 0, &get_val);
+  ECA_ASSERT_INT(CDS_SUCCESS, cds_arraylist_get(&arr, 0, &get_val));
   ECA_ASSERT_INT(0, get_val)
-  cds_arraylist_get(&arr, 7, &get_val);
+  for (int j = 0; j < 8; j++) {
+    unsigned int get_val_2;
+    ECA_ASSERT_INT(CDS_SUCCESS, cds_arraylist_get(&arr, j, &get_val_2));
+  }
+  ECA_ASSERT_INT(CDS_SUCCESS, cds_arraylist_get(&arr, 7, &get_val));
   ECA_ASSERT_INT(7, get_val)
   return ECA_PASS;
 }
