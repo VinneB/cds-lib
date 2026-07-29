@@ -1,5 +1,5 @@
-#ifndef TEST_CDS_ARRAYLIST_H
-#define TEST_CDS_ARRAYLIST_H
+#ifndef CDS_TEST_ARRAYLIST_H
+#define CDS_TEST_ARRAYLIST_H
 
 #include "ecassert.h" 
 
@@ -19,4 +19,4 @@ eca_status cds_test_arraylist_7();
 
 eca_status cds_test_arraylist_8();
 
-#endif // TEST_CDS_ARRAYLIST_H
+#endif // CDS_TEST_ARRAYLIST_H

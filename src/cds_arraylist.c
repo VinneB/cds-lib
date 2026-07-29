@@ -4,28 +4,9 @@
 
 #include "cds_arraylist.h"
 #include "cds_error.h"
+#include "cds_internal_common.h"
 
 // INTERNAL MACROS
-#define RETURN_IF_DS_NULL(ds)                  \
-  do {                                         \
-    if ((ds) == NULL) {                        \
-      return CDS_ERROR_DATA_STRUCTURE_IS_NULL; \
-    }                                          \
-  } while (0)
-
-#define RETURN_IF_DS_NOT_INIT(ds) \
-  do {                            \
-    if ((ds)->is_init != 1) {     \
-      return CDS_ERROR_NOT_INIT;  \
-    }                             \
-  } while (0)
-
-#define RETURN_IF_INDEX_OOB(ds, index) \
-  do {                                 \
-    if (index > ds->size) {            \
-      return CDS_ERROR_INDEX_OOB;      \
-    }                                  \
-  } while (0)
 
 // PRIVATE
 static unsigned int realloc_data(cds_arraylist *ds, void **new_data, unsigned int new_capacity) {
@@ -91,7 +72,7 @@ static inline unsigned char is_equal(void *a, void *b, size_t element_size) {
 
 // PUBLIC
 
-unsigned int cds_arraylist_init(cds_arraylist *ds, unsigned int initial_capacity, size_t element_size) {
+cds_err cds_arraylist_init(cds_arraylist *ds, unsigned int initial_capacity, size_t element_size) {
   RETURN_IF_DS_NULL(ds);
   ds->capacity = DEFAULT_ARRAYLIST_CAPACITY;
   if (initial_capacity != 0) {
@@ -107,7 +88,7 @@ unsigned int cds_arraylist_init(cds_arraylist *ds, unsigned int initial_capacity
   return CDS_SUCCESS;
 }
 
-unsigned int cds_arraylist_free(cds_arraylist *ds) {
+cds_err cds_arraylist_free(cds_arraylist *ds) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
 
@@ -116,7 +97,7 @@ unsigned int cds_arraylist_free(cds_arraylist *ds) {
   return CDS_SUCCESS;
 }
 
-unsigned int cds_arraylist_ensure_capacity(cds_arraylist *ds, unsigned int new_capacity) {
+cds_err cds_arraylist_ensure_capacity(cds_arraylist *ds, unsigned int new_capacity) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
   if (new_capacity <= ds->capacity) {
@@ -131,7 +112,7 @@ unsigned int cds_arraylist_ensure_capacity(cds_arraylist *ds, unsigned int new_c
   return CDS_SUCCESS;
 }
 
-unsigned int cds_arraylist_trim_to_size(cds_arraylist *ds) {
+cds_err cds_arraylist_trim_to_size(cds_arraylist *ds) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
   void *new_data = NULL;
@@ -143,12 +124,12 @@ unsigned int cds_arraylist_trim_to_size(cds_arraylist *ds) {
   return CDS_SUCCESS;
 }
 
-unsigned int cds_arraylist_size(cds_arraylist *ds) { return ds->size; }
+cds_err cds_arraylist_size(cds_arraylist *ds) { return ds->size; }
 
-unsigned int cds_arraylist_add(cds_arraylist *ds, void *element, unsigned int index) {
+cds_err cds_arraylist_add(cds_arraylist *ds, void *element, unsigned int index) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
-  RETURN_IF_INDEX_OOB(ds, index);
+  RETURN_IF_INDEX_OOB_INCLUDE_END(ds, index);
   dyn_resize(ds, 1);
   shift_data_right(ds, index);
   set(ds, index, element);
@@ -156,7 +137,7 @@ unsigned int cds_arraylist_add(cds_arraylist *ds, void *element, unsigned int in
   return CDS_SUCCESS;
 }
 
-unsigned int cds_arraylist_add_to_end(cds_arraylist *ds, void *element) {
+cds_err cds_arraylist_add_to_end(cds_arraylist *ds, void *element) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
   dyn_resize(ds, 1);
@@ -165,7 +146,7 @@ unsigned int cds_arraylist_add_to_end(cds_arraylist *ds, void *element) {
   return CDS_SUCCESS;
 }
 
-unsigned int cds_arraylist_get(cds_arraylist *ds, unsigned int index, void *value) {
+cds_err cds_arraylist_get(cds_arraylist *ds, unsigned int index, void *value) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
   RETURN_IF_INDEX_OOB(ds, index);
@@ -173,7 +154,7 @@ unsigned int cds_arraylist_get(cds_arraylist *ds, unsigned int index, void *valu
   return CDS_SUCCESS;
 }
 
-unsigned int cds_arraylist_remove(cds_arraylist *ds, unsigned int index, void *removed_element) {
+cds_err cds_arraylist_remove(cds_arraylist *ds, unsigned int index, void *removed_element) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
   RETURN_IF_INDEX_OOB(ds, index);
@@ -183,7 +164,7 @@ unsigned int cds_arraylist_remove(cds_arraylist *ds, unsigned int index, void *r
   return CDS_SUCCESS;
 }
 
-unsigned int cds_arraylist_remove_element(cds_arraylist *ds, void *element, unsigned int *removed_index) {
+cds_err cds_arraylist_remove_element(cds_arraylist *ds, void *element, unsigned int *removed_index) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
   for (char *p = (char *)ds->data; p < ((char *)ds->data + (ds->size * ds->element_size)); p = p + ds->element_size) {
@@ -197,7 +178,7 @@ unsigned int cds_arraylist_remove_element(cds_arraylist *ds, void *element, unsi
   return CDS_ERROR_ELEMENT_NOT_FOUND;
 }
 
-unsigned int cds_arraylist_set(cds_arraylist *ds, void *element, unsigned int index, void *removed_element) {
+cds_err cds_arraylist_set(cds_arraylist *ds, void *element, unsigned int index, void *removed_element) {
   RETURN_IF_DS_NULL(ds);
   RETURN_IF_DS_NOT_INIT(ds);
   RETURN_IF_INDEX_OOB(ds, index);
